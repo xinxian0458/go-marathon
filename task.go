@@ -174,7 +174,7 @@ func (r *marathonClient) KillTasks(tasks []string, opts *KillTaskOpts) error {
 //		health: 	whether to check the health or not
 func (r *marathonClient) TaskEndpoints(name string, port int, healthCheck bool) ([]string, error) {
 	// step: get the application details
-	application, err := r.Application(name)
+	application, err := r.Application(name, nil)
 	if err != nil {
 		return nil, err
 	}

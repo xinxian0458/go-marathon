@@ -95,6 +95,28 @@ type Fetch struct {
 	Cache      bool   `json:"cache"`
 }
 
+// GetAppOpts contains a payload for Application method
+//		id:		Filter the result to only return apps whose id is or contains the given value
+//		cmd:	Filter the result to only return apps whose cmd field contains the given value
+//		label:	A label selector query contains one or more label selectors, which are comma separated.
+//		embed:	Embeds nested resources that match the supplied path.
+// 				You can specify this parameter multiple times with different values
+type GetAppOpts struct {
+	Id    string   `url:"id,omitempty"`
+	Cmd   string   `url:"cmd,omitempty"`
+	Label string   `url:"label,omitempty"`
+	Embed []string `url:"embed,omitempty"`
+}
+
+// DeleteAppOpts contains a payload for DeleteApplication method
+//		force:		Only one deployment can be applied to one application at the same time.
+//					If the existing deployment should be canceled by this change, you can set force=true
+//					Caution: setting force=true xill cancel the current deployment. This parameter should be used only,
+//							if the current deployment is unsuccessful!
+type DeleteAppOpts struct {
+	Force bool `url:"force,omitempty"`
+}
+
 // NewDockerApplication creates a default docker application
 func NewDockerApplication() *Application {
 	application := new(Application)
@@ -460,12 +482,16 @@ func (r *marathonClient) SetApplicationVersion(name string, version *Application
 
 // Application retrieves the application configuration from marathon
 // 		name: 		the id used to identify the application
-func (r *marathonClient) Application(name string) (*Application, error) {
+func (r *marathonClient) Application(name string, opts *GetAppOpts) (*Application, error) {
+	u, err := addOptions(buildURI(name), opts)
+	if err != nil {
+		return nil, err
+	}
 	var wrapper struct {
 		Application *Application `json:"app"`
 	}
 
-	if err := r.apiGet(buildURI(name), nil, &wrapper); err != nil {
+	if err := r.apiGet(u, nil, &wrapper); err != nil {
 		return nil, err
 	}
 
@@ -491,7 +517,7 @@ func (r *marathonClient) ApplicationByVersion(name, version string) (*Applicatio
 // 		name: 		the id used to identify the application
 func (r *marathonClient) ApplicationOK(name string) (bool, error) {
 	// step: get the application
-	application, err := r.Application(name)
+	application, err := r.Application(name, nil)
 	if err != nil {
 		return false, err
 	}
@@ -522,7 +548,7 @@ func (r *marathonClient) ApplicationOK(name string) (bool, error) {
 // ApplicationDeployments retrieves an array of Deployment IDs for an application
 //       name:       the id used to identify the application
 func (r *marathonClient) ApplicationDeployments(name string) ([]*DeploymentID, error) {
-	application, err := r.Application(name)
+	application, err := r.Application(name, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -566,7 +592,7 @@ func (r *marathonClient) WaitOnApplication(name string, timeout time.Duration) e
 }
 
 func (r *marathonClient) appExistAndRunning(name string) bool {
-	app, err := r.Application(name)
+	app, err := r.Application(name, nil)
 	if apiErr, ok := err.(*APIError); ok && apiErr.ErrCode == ErrCodeNotFound {
 		return false
 	}
@@ -578,10 +604,14 @@ func (r *marathonClient) appExistAndRunning(name string) bool {
 
 // DeleteApplication deletes an application from marathon
 // 		name: 		the id used to identify the application
-func (r *marathonClient) DeleteApplication(name string) (*DeploymentID, error) {
+func (r *marathonClient) DeleteApplication(name string, opts *DeleteAppOpts) (*DeploymentID, error) {
+	u, err := addOptions(buildURI(name), opts)
+	if err != nil {
+		return nil, err
+	}
 	// step: check of the application already exists
 	deployID := new(DeploymentID)
-	if err := r.apiDelete(buildURI(name), nil, deployID); err != nil {
+	if err := r.apiDelete(u, nil, deployID); err != nil {
 		return nil, err
 	}
 

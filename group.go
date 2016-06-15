@@ -37,6 +37,31 @@ type Groups struct {
 	Groups       []*Group       `json:"groups"`
 }
 
+// GetGroupOpts contains a payload for Group and Groups method
+//		embed:		Embeds nested resources that match the supplied path.
+// 					You can specify this parameter multiple times with different values
+type GetGroupOpts struct {
+	Embed []string `url:"embed,omitempty"`
+}
+
+// DeleteGroupOpts contains a payload for DeleteGroup method
+//		force:		Only one deployment can be applied to one application at the same time.
+//					If the existing deployment should be canceled by this change, you can set force=true
+//					Caution: setting force=true xill cancel the current deployment. This parameter should be used only,
+//							if the current deployment is unsuccessful!
+type DeleteGroupOpts struct {
+	Force bool `url:"force,omitempty"`
+}
+
+// UpdateGroupOpts contains a payload for UpdateGroup method
+//		force:		Only one deployment can be applied to one application at the same time.
+//					If the existing deployment should be canceled by this change, you can set force=true
+//					Caution: setting force=true xill cancel the current deployment. This parameter should be used only,
+//							if the current deployment is unsuccessful!
+type UpdateGroupOpts struct {
+	Force bool `url:"force,omitempty"`
+}
+
 // NewApplicationGroup create a new application group
 //		name:			the name of the group
 func NewApplicationGroup(name string) *Group {
@@ -66,9 +91,13 @@ func (r *Group) App(application *Application) *Group {
 }
 
 // Groups retrieves a list of all the groups from marathon
-func (r *marathonClient) Groups() (*Groups, error) {
+func (r *marathonClient) Groups(opts *GetGroupOpts) (*Groups, error) {
+	u, err := addOptions(marathonAPIGroups, opts)
+	if err != nil {
+		return nil, err
+	}
 	groups := new(Groups)
-	if err := r.apiGet(marathonAPIGroups, "", groups); err != nil {
+	if err := r.apiGet(u, "", groups); err != nil {
 		return nil, err
 	}
 	return groups, nil
@@ -76,9 +105,13 @@ func (r *marathonClient) Groups() (*Groups, error) {
 
 // Group retrieves the configuration of a specific group from marathon
 //		name:			the identifier for the group
-func (r *marathonClient) Group(name string) (*Group, error) {
+func (r *marathonClient) Group(name string, opts *GetGroupOpts) (*Group, error) {
+	u, err := addOptions(fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name)), opts)
+	if err != nil {
+		return nil, err
+	}
 	group := new(Group)
-	if err := r.apiGet(fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name)), nil, group); err != nil {
+	if err := r.apiGet(u, nil, group); err != nil {
 		return nil, err
 	}
 	return group, nil
@@ -116,7 +149,7 @@ func (r *marathonClient) WaitOnGroup(name string, timeout time.Duration) error {
 			flick.SwitchOn()
 		}()
 		for !flick.IsSwitched() {
-			if group, err := r.Group(name); err != nil {
+			if group, err := r.Group(name, nil); err != nil {
 				continue
 			} else {
 				allRunning := true
@@ -126,7 +159,7 @@ func (r *marathonClient) WaitOnGroup(name string, timeout time.Duration) error {
 					// appears the instance count is not set straight away!! .. it defaults to zero and changes probably at the
 					// dependencies gets deployed. Which is probably how it internally handles dependencies ..
 					// step: grab the application
-					application, err := r.Application(appID.ID)
+					application, err := r.Application(appID.ID, nil)
 					if err != nil {
 						allRunning = false
 						break
@@ -157,10 +190,13 @@ func (r *marathonClient) WaitOnGroup(name string, timeout time.Duration) error {
 
 // DeleteGroup deletes a group from marathon
 //		name:			the identifier for the group
-func (r *marathonClient) DeleteGroup(name string) (*DeploymentID, error) {
+func (r *marathonClient) DeleteGroup(name string, opts *DeleteGroupOpts) (*DeploymentID, error) {
+	u, err := addOptions(fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name)), opts)
+	if err != nil {
+		return nil, err
+	}
 	version := new(DeploymentID)
-	uri := fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name))
-	if err := r.apiDelete(uri, nil, version); err != nil {
+	if err := r.apiDelete(u, nil, version); err != nil {
 		return nil, err
 	}
 
@@ -170,10 +206,13 @@ func (r *marathonClient) DeleteGroup(name string) (*DeploymentID, error) {
 // UpdateGroup updates the parameters of a groups
 //		name:			the identifier for the group
 //		group:  		the group structure with the new params
-func (r *marathonClient) UpdateGroup(name string, group *Group) (*DeploymentID, error) {
+func (r *marathonClient) UpdateGroup(name string, group *Group, opts *UpdateGroupOpts) (*DeploymentID, error) {
+	u, err := addOptions(fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name)), opts)
+	if err != nil {
+		return nil, err
+	}
 	deploymentID := new(DeploymentID)
-	uri := fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name))
-	if err := r.apiPut(uri, group, deploymentID); err != nil {
+	if err := r.apiPut(u, group, deploymentID); err != nil {
 		return nil, err
 	}
 
