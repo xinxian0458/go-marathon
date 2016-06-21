@@ -482,7 +482,7 @@ func (r *marathonClient) SetApplicationVersion(name string, version *Application
 
 // Application retrieves the application configuration from marathon
 // 		name: 		the id used to identify the application
-func (r *marathonClient) Application(name string, opts *GetAppOpts) (*Application, error) {
+func (r *marathonClient) Application(name string) (*Application, error) {
 	u, err := addOptions(buildURI(name), opts)
 	if err != nil {
 		return nil, err
@@ -535,7 +535,7 @@ func (r *marathonClient) ApplicationByVersion(name, version string) (*Applicatio
 // 		name: 		the id used to identify the application
 func (r *marathonClient) ApplicationOK(name string) (bool, error) {
 	// step: get the application
-	application, err := r.Application(name, nil)
+	application, err := r.Application(name)
 	if err != nil {
 		return false, err
 	}
@@ -566,7 +566,7 @@ func (r *marathonClient) ApplicationOK(name string) (bool, error) {
 // ApplicationDeployments retrieves an array of Deployment IDs for an application
 //       name:       the id used to identify the application
 func (r *marathonClient) ApplicationDeployments(name string) ([]*DeploymentID, error) {
-	application, err := r.Application(name, nil)
+	application, err := r.Application(name)
 	if err != nil {
 		return nil, err
 	}
@@ -609,7 +609,7 @@ func (r *marathonClient) WaitOnApplication(name string, timeout time.Duration) e
 }
 
 func (r *marathonClient) appExistAndRunning(name string) bool {
-	app, err := r.Application(name, nil)
+	app, err := r.Application(name)
 	if apiErr, ok := err.(*APIError); ok && apiErr.ErrCode == ErrCodeNotFound {
 		return false
 	}

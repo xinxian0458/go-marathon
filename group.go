@@ -105,7 +105,7 @@ func (r *marathonClient) Groups(opts *GetGroupOpts) (*Groups, error) {
 
 // Group retrieves the configuration of a specific group from marathon
 //		name:			the identifier for the group
-func (r *marathonClient) Group(name string, opts *GetGroupOpts) (*Group, error) {
+func (r *marathonClient) Group(name string) (*Group, error) {
 	u, err := addOptions(fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name)), opts)
 	if err != nil {
 		return nil, err
@@ -178,7 +178,7 @@ func (r *marathonClient) WaitOnGroup(name string, timeout time.Duration) error {
 			flick.SwitchOn()
 		}()
 		for !flick.IsSwitched() {
-			if group, err := r.Group(name, nil); err != nil {
+			if group, err := r.Group(name); err != nil {
 				continue
 			} else {
 				allRunning := true
@@ -188,7 +188,7 @@ func (r *marathonClient) WaitOnGroup(name string, timeout time.Duration) error {
 					// appears the instance count is not set straight away!! .. it defaults to zero and changes probably at the
 					// dependencies gets deployed. Which is probably how it internally handles dependencies ..
 					// step: grab the application
-					application, err := r.Application(appID.ID, nil)
+					application, err := r.Application(appID.ID)
 					if err != nil {
 						allRunning = false
 						break
