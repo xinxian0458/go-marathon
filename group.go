@@ -117,6 +117,35 @@ func (r *marathonClient) Group(name string, opts *GetGroupOpts) (*Group, error) 
 	return group, nil
 }
 
+// Groups retrieves a list of all the groups from marathon by embed options
+//		opts:			the query parameters to get groups
+func (r *marathonClient) GroupsBy(opts *GetGroupOpts) (*Groups, error) {
+	u, err := addOptions(marathonAPIGroups, opts)
+	if err != nil {
+		return nil, err
+	}
+	groups := new(Groups)
+	if err := r.apiGet(u, "", groups); err != nil {
+		return nil, err
+	}
+	return groups, nil
+}
+
+// Group retrieves the configuration of a specific group from marathon
+//		name:			the identifier for the group
+//		opts:			the query parameters to get group
+func (r *marathonClient) GroupBy(name string, opts *GetGroupOpts) (*Group, error) {
+	u, err := addOptions(fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name)), opts)
+	if err != nil {
+		return nil, err
+	}
+	group := new(Group)
+	if err := r.apiGet(u, nil, group); err != nil {
+		return nil, err
+	}
+	return group, nil
+}
+
 // HasGroup checks if the group exists in marathon
 // 		name:			the identifier for the group
 func (r *marathonClient) HasGroup(name string) (bool, error) {
@@ -190,13 +219,13 @@ func (r *marathonClient) WaitOnGroup(name string, timeout time.Duration) error {
 
 // DeleteGroup deletes a group from marathon
 //		name:			the identifier for the group
-func (r *marathonClient) DeleteGroup(name string, opts *DeleteGroupOpts) (*DeploymentID, error) {
-	u, err := addOptions(fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name)), opts)
-	if err != nil {
-		return nil, err
-	}
+func (r *marathonClient) DeleteGroup(name string, force bool) (*DeploymentID, error) {
 	version := new(DeploymentID)
-	if err := r.apiDelete(u, nil, version); err != nil {
+	uri := fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name))
+	if force {
+		uri = uri + "?force=true"
+	}
+	if err := r.apiDelete(uri, nil, version); err != nil {
 		return nil, err
 	}
 
@@ -206,13 +235,13 @@ func (r *marathonClient) DeleteGroup(name string, opts *DeleteGroupOpts) (*Deplo
 // UpdateGroup updates the parameters of a groups
 //		name:			the identifier for the group
 //		group:  		the group structure with the new params
-func (r *marathonClient) UpdateGroup(name string, group *Group, opts *UpdateGroupOpts) (*DeploymentID, error) {
-	u, err := addOptions(fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name)), opts)
-	if err != nil {
-		return nil, err
-	}
+func (r *marathonClient) UpdateGroup(name string, group *Group, force bool) (*DeploymentID, error) {
 	deploymentID := new(DeploymentID)
-	if err := r.apiPut(u, group, deploymentID); err != nil {
+	uri := fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name))
+	if force {
+		uri = uri + "?force=true"
+	}
+	if err := r.apiPut(uri, group, deploymentID); err != nil {
 		return nil, err
 	}
 

@@ -498,6 +498,24 @@ func (r *marathonClient) Application(name string, opts *GetAppOpts) (*Applicatio
 	return wrapper.Application, nil
 }
 
+// Application retrieves the application configuration from marathon
+// 		name: 		the id used to identify the application
+func (r *marathonClient) ApplicationBy(name string, opts *GetAppOpts) (*Application, error) {
+	u, err := addOptions(buildURI(name), opts)
+	if err != nil {
+		return nil, err
+	}
+	var wrapper struct {
+		Application *Application `json:"app"`
+	}
+
+	if err := r.apiGet(u, nil, &wrapper); err != nil {
+		return nil, err
+	}
+
+	return wrapper.Application, nil
+}
+
 // ApplicationByVersion retrieves the application configuration from marathon
 // 		name: 		the id used to identify the application
 // 		version:  the version of the configuration you would like to receive
@@ -603,14 +621,11 @@ func (r *marathonClient) appExistAndRunning(name string) bool {
 
 // DeleteApplication deletes an application from marathon
 // 		name: 		the id used to identify the application
-func (r *marathonClient) DeleteApplication(name string, opts *DeleteAppOpts) (*DeploymentID, error) {
-	u, err := addOptions(buildURI(name), opts)
-	if err != nil {
-		return nil, err
-	}
+func (r *marathonClient) DeleteApplication(name string, force bool) (*DeploymentID, error) {
+	uri := buildURIWithForceParam(name, force)
 	// step: check of the application already exists
 	deployID := new(DeploymentID)
-	if err := r.apiDelete(u, nil, deployID); err != nil {
+	if err := r.apiDelete(uri, nil, deployID); err != nil {
 		return nil, err
 	}
 

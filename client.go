@@ -48,7 +48,7 @@ type Marathon interface {
 	// create an application in marathon
 	CreateApplication(application *Application) (*Application, error)
 	// delete an application
-	DeleteApplication(name string, opts *DeleteAppOpts) (*DeploymentID, error)
+	DeleteApplication(name string, force bool) (*DeploymentID, error)
 	// update an application in marathon
 	UpdateApplication(application *Application, force bool) (*DeploymentID, error)
 	// a list of deployments on a application
@@ -60,7 +60,9 @@ type Marathon interface {
 	// get a list of applications from marathon
 	Applications(url.Values) (*Applications, error)
 	// get an application by name
-	Application(name string, opts *GetAppOpts) (*Application, error)
+	Application(name string) (*Application, error)
+	// get an application by options
+	ApplicationBy(name string, opts *GetAppOpts)
 	// get an application by name and version
 	ApplicationByVersion(name, version string) (*Application, error)
 	// wait of application
@@ -86,13 +88,17 @@ type Marathon interface {
 	// list all the groups in the system
 	Groups(opts *GetGroupOpts) (*Groups, error)
 	// retrieve a specific group from marathon
-	Group(name string, opts *GetGroupOpts) (*Group, error)
+	Group(name string) (*Group, error)
+	// list all groups in marathon by options
+	GroupsBy(opts *GetGroupOpts) (*Groups, error)
+	// retrieve a specific group from marathon by options
+	GroupBy(name string, opts *GetGroupOpts) (*Group, error)
 	// create a group deployment
 	CreateGroup(group *Group) error
 	// delete a group
-	DeleteGroup(name string, opts *DeleteGroupOpts) (*DeploymentID, error)
+	DeleteGroup(name string, force bool) (*DeploymentID, error)
 	// update a groups
-	UpdateGroup(id string, group *Group, opts *UpdateGroupOpts) (*DeploymentID, error)
+	UpdateGroup(id string, group *Group, force bool) (*DeploymentID, error)
 	// check if a group exists
 	HasGroup(name string) (bool, error)
 	// wait for an group to be deployed
