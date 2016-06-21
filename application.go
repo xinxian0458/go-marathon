@@ -483,15 +483,11 @@ func (r *marathonClient) SetApplicationVersion(name string, version *Application
 // Application retrieves the application configuration from marathon
 // 		name: 		the id used to identify the application
 func (r *marathonClient) Application(name string) (*Application, error) {
-	u, err := addOptions(buildURI(name), opts)
-	if err != nil {
-		return nil, err
-	}
 	var wrapper struct {
 		Application *Application `json:"app"`
 	}
 
-	if err := r.apiGet(u, nil, &wrapper); err != nil {
+	if err := r.apiGet(buildURI(name), nil, &wrapper); err != nil {
 		return nil, err
 	}
 

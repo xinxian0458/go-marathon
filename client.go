@@ -62,7 +62,7 @@ type Marathon interface {
 	// get an application by name
 	Application(name string) (*Application, error)
 	// get an application by options
-	ApplicationBy(name string, opts *GetAppOpts)
+	ApplicationBy(name string, opts *GetAppOpts) (*Application, error)
 	// get an application by name and version
 	ApplicationByVersion(name, version string) (*Application, error)
 	// wait of application
@@ -86,7 +86,7 @@ type Marathon interface {
 	// --- GROUPS ---
 
 	// list all the groups in the system
-	Groups(opts *GetGroupOpts) (*Groups, error)
+	Groups() (*Groups, error)
 	// retrieve a specific group from marathon
 	Group(name string) (*Group, error)
 	// list all groups in marathon by options

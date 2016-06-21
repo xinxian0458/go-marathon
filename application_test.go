@@ -358,7 +358,7 @@ func TestDeleteApplication(t *testing.T) {
 		assert.NotNil(t, id)
 		assert.Equal(t, "83b215a6-4e26-4e44-9333-5c385eda6438", id.DeploymentID)
 		assert.Equal(t, "2014-08-26T07:37:50.462Z", id.Version)
-		id, err = endpoint.Client.DeleteApplication("no_such_app")
+		id, err = endpoint.Client.DeleteApplication("no_such_app", force)
 		assert.Error(t, err)
 	}
 }

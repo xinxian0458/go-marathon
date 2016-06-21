@@ -91,13 +91,9 @@ func (r *Group) App(application *Application) *Group {
 }
 
 // Groups retrieves a list of all the groups from marathon
-func (r *marathonClient) Groups(opts *GetGroupOpts) (*Groups, error) {
-	u, err := addOptions(marathonAPIGroups, opts)
-	if err != nil {
-		return nil, err
-	}
+func (r *marathonClient) Groups() (*Groups, error) {
 	groups := new(Groups)
-	if err := r.apiGet(u, "", groups); err != nil {
+	if err := r.apiGet(marathonAPIGroups, "", groups); err != nil {
 		return nil, err
 	}
 	return groups, nil
@@ -106,12 +102,8 @@ func (r *marathonClient) Groups(opts *GetGroupOpts) (*Groups, error) {
 // Group retrieves the configuration of a specific group from marathon
 //		name:			the identifier for the group
 func (r *marathonClient) Group(name string) (*Group, error) {
-	u, err := addOptions(fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name)), opts)
-	if err != nil {
-		return nil, err
-	}
 	group := new(Group)
-	if err := r.apiGet(u, nil, group); err != nil {
+	if err := r.apiGet(fmt.Sprintf("%s/%s", marathonAPIGroups, trimRootPath(name)), nil, group); err != nil {
 		return nil, err
 	}
 	return group, nil
