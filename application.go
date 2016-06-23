@@ -102,7 +102,7 @@ type Fetch struct {
 //		embed:	Embeds nested resources that match the supplied path.
 // 				You can specify this parameter multiple times with different values
 type GetAppOpts struct {
-	Id    string   `url:"id,omitempty"`
+	ID    string   `url:"id,omitempty"`
 	Cmd   string   `url:"cmd,omitempty"`
 	Label string   `url:"label,omitempty"`
 	Embed []string `url:"embed,omitempty"`
@@ -496,6 +496,7 @@ func (r *marathonClient) Application(name string) (*Application, error) {
 
 // Application retrieves the application configuration from marathon
 // 		name: 		the id used to identify the application
+//		opts:		GetAppOpts request payload
 func (r *marathonClient) ApplicationBy(name string, opts *GetAppOpts) (*Application, error) {
 	u, err := addOptions(buildURI(name), opts)
 	if err != nil {
@@ -617,6 +618,7 @@ func (r *marathonClient) appExistAndRunning(name string) bool {
 
 // DeleteApplication deletes an application from marathon
 // 		name: 		the id used to identify the application
+//		force:		used to force the delete operation in case of blocked deployment
 func (r *marathonClient) DeleteApplication(name string, force bool) (*DeploymentID, error) {
 	uri := buildURIWithForceParam(name, force)
 	// step: check of the application already exists
