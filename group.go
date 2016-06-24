@@ -103,7 +103,7 @@ func (r *marathonClient) Group(name string) (*Group, error) {
 	return group, nil
 }
 
-// Groups retrieves a list of all the groups from marathon by embed options
+// GroupsBy retrieves a list of all the groups from marathon by embed options
 //		opts:		GetGroupOpts request payload
 func (r *marathonClient) GroupsBy(opts *GetGroupOpts) (*Groups, error) {
 	u, err := addOptions(marathonAPIGroups, opts)
@@ -117,7 +117,7 @@ func (r *marathonClient) GroupsBy(opts *GetGroupOpts) (*Groups, error) {
 	return groups, nil
 }
 
-// Group retrieves the configuration of a specific group from marathon
+// GroupBy retrieves the configuration of a specific group from marathon
 //		name:			the identifier for the group
 //		opts:			GetGroupOpts request payload
 func (r *marathonClient) GroupBy(name string, opts *GetGroupOpts) (*Group, error) {

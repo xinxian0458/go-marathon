@@ -96,23 +96,14 @@ type Fetch struct {
 }
 
 // GetAppOpts contains a payload for Application method
-//		id:		Filter the result to only return apps whose id is or contains the given value
-//		cmd:	Filter the result to only return apps whose cmd field contains the given value
-//		label:	A label selector query contains one or more label selectors, which are comma separated.
 //		embed:	Embeds nested resources that match the supplied path.
 // 				You can specify this parameter multiple times with different values
 type GetAppOpts struct {
-	ID    string   `url:"id,omitempty"`
-	Cmd   string   `url:"cmd,omitempty"`
-	Label string   `url:"label,omitempty"`
 	Embed []string `url:"embed,omitempty"`
 }
 
 // DeleteAppOpts contains a payload for DeleteApplication method
-//		force:		Only one deployment can be applied to one application at the same time.
-//					If the existing deployment should be canceled by this change, you can set force=true
-//					Caution: setting force=true xill cancel the current deployment. This parameter should be used only,
-//							if the current deployment is unsuccessful!
+//		force:		overrides a currently running deployment.
 type DeleteAppOpts struct {
 	Force bool `url:"force,omitempty"`
 }
@@ -494,7 +485,7 @@ func (r *marathonClient) Application(name string) (*Application, error) {
 	return wrapper.Application, nil
 }
 
-// Application retrieves the application configuration from marathon
+// ApplicationBy retrieves the application configuration from marathon
 // 		name: 		the id used to identify the application
 //		opts:		GetAppOpts request payload
 func (r *marathonClient) ApplicationBy(name string, opts *GetAppOpts) (*Application, error) {
