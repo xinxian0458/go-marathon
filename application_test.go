@@ -17,6 +17,8 @@ limitations under the License.
 package marathon
 
 import (
+	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -188,6 +190,27 @@ func TestApplicationHealthChecks(t *testing.T) {
 	assert.Equal(t, 0, len(*app.HealthChecks))
 }
 
+func TestApplicationPortDefinitions(t *testing.T) {
+	app := NewDockerApplication()
+	assert.Nil(t, app.PortDefinitions)
+	app.AddPortDefinition(PortDefinition{Protocol: "tcp", Name: "es"}.SetPort(9201).AddLabel("foo", "bar")).
+		AddPortDefinition(PortDefinition{Protocol: "udp,tcp", Name: "syslog"}.SetPort(514))
+
+	assert.Equal(t, 2, len(*app.PortDefinitions))
+	assert.Equal(t, PortDefinition{Protocol: "tcp", Name: "es"}.SetPort(9201).AddLabel("foo", "bar"), (*app.PortDefinitions)[0])
+	assert.Equal(t, 1, len(*(*app.PortDefinitions)[0].Labels))
+	assert.Equal(t, PortDefinition{Protocol: "udp,tcp", Name: "syslog"}.SetPort(514), (*app.PortDefinitions)[1])
+	assert.Nil(t, (*app.PortDefinitions)[1].Labels)
+
+	(*app.PortDefinitions)[0].EmptyLabels()
+	assert.NotNil(t, (*app.PortDefinitions)[0].Labels)
+	assert.Equal(t, 0, len(*(*app.PortDefinitions)[0].Labels))
+
+	app.EmptyPortDefinitions()
+	assert.NotNil(t, app.PortDefinitions)
+	assert.Equal(t, 0, len(*app.PortDefinitions))
+}
+
 func TestHasHealthChecks(t *testing.T) {
 	app := NewDockerApplication()
 	assert.False(t, app.HasHealthChecks())
@@ -265,6 +288,13 @@ func TestApplications(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, applications)
 	assert.Equal(t, len(applications.Apps), 2)
+
+	v := url.Values{}
+	v.Set("cmd", "nginx")
+	applications, err = endpoint.Client.Applications(v)
+	assert.NoError(t, err)
+	assert.NotNil(t, applications)
+	assert.Equal(t, len(applications.Apps), 1)
 }
 
 func TestListApplications(t *testing.T) {
@@ -322,6 +352,21 @@ func TestApplicationUris(t *testing.T) {
 	assert.Equal(t, 0, len(*app.Uris))
 }
 
+func TestApplicationFetchURIs(t *testing.T) {
+	app := NewDockerApplication()
+	assert.Nil(t, app.Fetch)
+	app.AddFetchURIs(Fetch{URI: "file://uri1.tar.gz"}).
+		AddFetchURIs(Fetch{URI: "file://uri2.tar.gz"}, Fetch{URI: "file://uri3.tar.gz"})
+	assert.Equal(t, 3, len(*app.Fetch))
+	assert.Equal(t, Fetch{URI: "file://uri1.tar.gz"}, (*app.Fetch)[0])
+	assert.Equal(t, Fetch{URI: "file://uri2.tar.gz"}, (*app.Fetch)[1])
+	assert.Equal(t, Fetch{URI: "file://uri3.tar.gz"}, (*app.Fetch)[2])
+
+	app.EmptyUris()
+	assert.NotNil(t, app.Uris)
+	assert.Equal(t, 0, len(*app.Uris))
+}
+
 func TestSetApplicationVersion(t *testing.T) {
 	endpoint := newFakeMarathonEndpoint(t, nil)
 	defer endpoint.Close()
@@ -373,6 +418,9 @@ func TestApplicationOK(t *testing.T) {
 	ok, err = endpoint.Client.ApplicationOK(fakeAppNameBroken)
 	assert.NoError(t, err)
 	assert.False(t, ok)
+	ok, err = endpoint.Client.ApplicationOK(fakeAppNameUnhealthy)
+	assert.NoError(t, err)
+	assert.False(t, ok)
 }
 
 func verifyApplication(application *Application, t *testing.T) {
@@ -400,6 +448,10 @@ func TestApplication(t *testing.T) {
 
 	config := NewDefaultConfig()
 	config.URL = "http://non-existing-marathon-host.local:5555"
+	// Reduce timeout to speed up test execution time.
+	config.HTTPClient = &http.Client{
+		Timeout: 100 * time.Millisecond,
+	}
 	endpoint = newFakeMarathonEndpoint(t, &configContainer{
 		client: &config,
 	})
@@ -433,20 +485,134 @@ func TestApplicationConfiguration(t *testing.T) {
 }
 
 func TestWaitOnApplication(t *testing.T) {
-	endpoint := newFakeMarathonEndpoint(t, nil)
-	defer endpoint.Close()
+	waitTime := 100 * time.Millisecond
 
-	var err error
-	err = endpoint.Client.WaitOnApplication(fakeAppName, 1*time.Second)
-	assert.NoError(t, err)
+	tests := []struct {
+		desc          string
+		timeout       time.Duration
+		appName       string
+		testScope     string
+		shouldSucceed bool
+	}{
+		{
+			desc:          "initially existing app",
+			timeout:       0,
+			appName:       fakeAppName,
+			shouldSucceed: true,
+		},
 
-	err = endpoint.Client.WaitOnApplication("no_such_app", 1*time.Millisecond)
-	assert.IsType(t, err, ErrTimeoutError)
+		{
+			desc:          "delayed existing app | timeout > ticker",
+			timeout:       200 * time.Millisecond,
+			appName:       fakeAppName,
+			testScope:     "wait-on-app",
+			shouldSucceed: true,
+		},
+
+		{
+			desc:          "delayed existing app | timeout < ticker",
+			timeout:       50 * time.Millisecond,
+			appName:       fakeAppName,
+			testScope:     "wait-on-app",
+			shouldSucceed: false,
+		},
+		{
+			desc:          "missing app | timeout > ticker",
+			timeout:       200 * time.Millisecond,
+			appName:       "no_such_app",
+			shouldSucceed: false,
+		},
+		{
+			desc:          "missing app | timeout < ticker",
+			timeout:       50 * time.Millisecond,
+			appName:       "no_such_app",
+			shouldSucceed: false,
+		},
+	}
+
+	for _, test := range tests {
+		defaultConfig := NewDefaultConfig()
+		defaultConfig.PollingWaitTime = waitTime
+		configs := &configContainer{
+			client: &defaultConfig,
+			server: &serverConfig{
+				scope: test.testScope,
+			},
+		}
+
+		endpoint := newFakeMarathonEndpoint(t, configs)
+		defer endpoint.Close()
+
+		var err error
+		go func() {
+			err = endpoint.Client.WaitOnApplication(test.appName, test.timeout)
+		}()
+		timer := time.NewTimer(400 * time.Millisecond)
+		<-timer.C
+		if test.shouldSucceed {
+			assert.NoError(t, err, test.desc)
+		} else {
+			assert.IsType(t, err, ErrTimeoutError, test.desc)
+		}
+	}
 }
+
 func TestAppExistAndRunning(t *testing.T) {
 	endpoint := newFakeMarathonEndpoint(t, nil)
 	defer endpoint.Close()
 	client := endpoint.Client.(*marathonClient)
 	assert.True(t, client.appExistAndRunning(fakeAppName))
 	assert.False(t, client.appExistAndRunning("no_such_app"))
+}
+
+func TestSetIPPerTask(t *testing.T) {
+	app := Application{}
+	app.Ports = append(app.Ports, 10)
+	app.AddPortDefinition(PortDefinition{})
+	assert.Nil(t, app.IPAddressPerTask)
+	assert.Equal(t, 1, len(app.Ports))
+	assert.Equal(t, 1, len(*app.PortDefinitions))
+
+	app.SetIPAddressPerTask(IPAddressPerTask{})
+	assert.NotNil(t, app.IPAddressPerTask)
+	assert.Equal(t, 0, len(app.Ports))
+	assert.Equal(t, 0, len(*app.PortDefinitions))
+}
+
+func TestIPAddressPerTask(t *testing.T) {
+	ipPerTask := IPAddressPerTask{}
+	assert.Nil(t, ipPerTask.Groups)
+	assert.Nil(t, ipPerTask.Labels)
+	assert.Nil(t, ipPerTask.Discovery)
+
+	ipPerTask.
+		AddGroup("label").
+		AddLabel("key", "value").
+		SetDiscovery(Discovery{})
+
+	assert.Equal(t, 1, len(*ipPerTask.Groups))
+	assert.Equal(t, "label", (*ipPerTask.Groups)[0])
+	assert.Equal(t, "value", (*ipPerTask.Labels)["key"])
+	assert.NotEmpty(t, ipPerTask.Discovery)
+
+	ipPerTask.EmptyGroups()
+	assert.Equal(t, 0, len(*ipPerTask.Groups))
+
+	ipPerTask.EmptyLabels()
+	assert.Equal(t, 0, len(*ipPerTask.Labels))
+
+}
+
+func TestIPAddressPerTaskDiscovery(t *testing.T) {
+	disc := Discovery{}
+	assert.Nil(t, disc.Ports)
+
+	disc.AddPort(Port{})
+	assert.NotNil(t, disc.Ports)
+	assert.Equal(t, 1, len(*disc.Ports))
+
+	disc.EmptyPorts()
+	assert.NotNil(t, disc.Ports)
+	assert.Equal(t, 0, len(*disc.Ports))
+
 }

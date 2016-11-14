@@ -134,6 +134,7 @@ type EventStatusUpdate struct {
 	SlaveID     string       `json:"slaveId,omitempty"`
 	TaskID      string       `json:"taskId"`
 	TaskStatus  string       `json:"taskStatus"`
+	Message     string       `json:"message,omitempty"`
 	AppID       string       `json:"appId"`
 	Host        string       `json:"host"`
 	Ports       []int        `json:"ports,omitempty"`
@@ -287,7 +288,7 @@ type EventDeploymentFailed struct {
 // EventDeploymentInfo describes a 'deployment_info' event.
 type EventDeploymentInfo struct {
 	EventType   string          `json:"eventType"`
-	CurrentStep *DeploymentStep `json:"currentStep"`
+	CurrentStep *StepActions    `json:"currentStep"`
 	Timestamp   string          `json:"timestamp"`
 	Plan        *DeploymentPlan `json:"plan"`
 }
@@ -295,7 +296,7 @@ type EventDeploymentInfo struct {
 // EventDeploymentStepSuccess describes a 'deployment_step_success' event.
 type EventDeploymentStepSuccess struct {
 	EventType   string          `json:"eventType"`
-	CurrentStep *DeploymentStep `json:"currentStep"`
+	CurrentStep *StepActions    `json:"currentStep"`
 	Timestamp   string          `json:"timestamp"`
 	Plan        *DeploymentPlan `json:"plan"`
 }
@@ -303,7 +304,7 @@ type EventDeploymentStepSuccess struct {
 // EventDeploymentStepFailure describes a 'deployment_step_failure' event.
 type EventDeploymentStepFailure struct {
 	EventType   string          `json:"eventType"`
-	CurrentStep *DeploymentStep `json:"currentStep"`
+	CurrentStep *StepActions    `json:"currentStep"`
 	Timestamp   string          `json:"timestamp"`
 	Plan        *DeploymentPlan `json:"plan"`
 }

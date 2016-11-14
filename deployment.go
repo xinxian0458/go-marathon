@@ -46,8 +46,8 @@ type DeploymentStep struct {
 	App    string `json:"app"`
 }
 
-// DeploymentStepV1 is a Marathon v1.X-compatible DeploymentStep
-type DeploymentStepV1 struct {
+// StepActions is a series of deployment steps
+type StepActions struct {
 	Actions []struct {
 		Type string `json:"type"`
 		App  string `json:"app"`
@@ -56,23 +56,11 @@ type DeploymentStepV1 struct {
 
 // DeploymentPlan is a collection of steps for application deployment
 type DeploymentPlan struct {
-	ID       string `json:"id"`
-	Version  string `json:"version"`
-	Original struct {
-		Apps         []*Application `json:"apps"`
-		Dependencies []string       `json:"dependencies"`
-		Groups       []*Group       `json:"groups"`
-		ID           string         `json:"id"`
-		Version      string         `json:"version"`
-	} `json:"original"`
-	Steps  []*DeploymentStep `json:"steps"`
-	Target struct {
-		Apps         []*Application `json:"apps"`
-		Dependencies []string       `json:"dependencies"`
-		Groups       []*Group       `json:"groups"`
-		ID           string         `json:"id"`
-		Version      string         `json:"version"`
-	} `json:"target"`
+	ID       string         `json:"id"`
+	Version  string         `json:"version"`
+	Original *Group         `json:"original"`
+	Target   *Group         `json:"target"`
+	Steps    []*StepActions `json:"steps"`
 }
 
 // Deployments retrieves a list of current deployments
@@ -88,7 +76,7 @@ func (r *marathonClient) Deployments() ([]*Deployment, error) {
 		// Unmarshal pre-v1.X step
 		if err := json.Unmarshal(deployment.XXStepsRaw, &deployment.Steps); err != nil {
 			deployment.Steps = make([][]*DeploymentStep, 0)
-			var steps []*DeploymentStepV1
+			var steps []*StepActions
 			// Unmarshal v1.X Marathon step
 			if err := json.Unmarshal(deployment.XXStepsRaw, &steps); err != nil {
 				return nil, err
@@ -163,6 +151,6 @@ func (r *marathonClient) WaitOnDeployment(id string, timeout time.Duration) erro
 		if !found {
 			return nil
 		}
-		time.Sleep(time.Duration(2) * time.Second)
+		time.Sleep(r.config.PollingWaitTime)
 	}
 }

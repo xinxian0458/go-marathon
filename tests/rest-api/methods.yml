@@ -203,6 +203,17 @@
         }
     ]
     }
+- uri: /v2/apps?cmd=nginx
+  method: GET
+  content: |
+    {
+    "apps": [
+        {
+            "args": null,
+            "cmd": "nginx"
+        }
+    ]
+    }
 - uri: /v2/apps/fake-app/restart
   method: POST
   content: |
@@ -480,6 +491,18 @@
         "version": "2014-09-12T23:28:21.737Z"
     }
     }
+
+- uri: /v2/apps/fake-app
+  method: GET
+  scope: wait-on-app
+  contentSequence:
+    - index: 1
+      content: |
+        {
+        "app": {
+        }
+        }
+
 - uri: /v2/apps/fake-app-broken
   method: GET
   content: |
@@ -936,7 +959,7 @@
     ]
 - uri: /v2/deployments
   method: GET
-  version: 1.1.1
+  scope: v1.1.1
   content: |
     [
       {
@@ -982,6 +1005,14 @@
         "deploymentId": "0b1467fc-d5cd-4bbc-bac2-2805351cee1e",
         "version": "2014-08-26T08:20:26.171Z"
     }
+- uri: /v2/eventSubscriptions?callbackUrl=http://localhost:9292/callback
+  method: POST
+  content: |
+    {
+            "callbackUrl": "http://localhost:9292/callback",
+            "clientIp": "0:0:0:0:0:0:0:1",
+            "eventType": "subscribe_event"
+        }
 - uri: /v2/eventSubscriptions
   method: POST
   content: |
@@ -1012,6 +1043,11 @@
     {
         "queue": [
             {
+                "count": 10,
+                "delay": {
+                  "overdue": true,
+                  "timeLeftSeconds": 784
+                },
                 "app": {
                     "args": null,
                     "backoffFactor": 1.15,
@@ -1039,11 +1075,14 @@
                     ],
                     "user": null,
                     "version": "2014-08-26T05:04:49.766Z"
-                },
-                "delay": { "overdue": true }
+                }
             }
         ]
     }
+
+- uri: /v2/queue/fake-app/delay
+  method: DELETE
+
 - uri: /v2/leader
   method: GET
   content: |
@@ -1238,5 +1277,51 @@
         }
     ]
     }
-
-
+- uri: /v2/apps/no-health-check-results-app
+  method: GET
+  content: |
+    {
+    "app": {
+        "healthChecks": [
+            {
+                "command": null,
+                "gracePeriodSeconds": 5,
+                "intervalSeconds": 10,
+                "maxConsecutiveFailures": 3,
+                "path": "/health",
+                "portIndex": 0,
+                "protocol": "HTTP",
+                "timeoutSeconds": 10
+            }
+        ],
+        "id": "/no-health-check-results-app",
+        "instances": 2,
+        "mem": 32.0,
+        "ports": [
+            10000
+        ],
+        "tasks": [
+            {
+                "appId": "/no-health-check-results-app",
+                "healthCheckResults": [
+                    {
+                        "alive": true,
+                        "consecutiveFailures": 0,
+                        "firstSuccess": "2014-09-13T00:20:28.101Z",
+                        "lastFailure": null,
+                        "lastSuccess": "2014-09-13T00:25:07.506Z",
+                        "taskId": "toggle.802df2ae-3ad4-11e4-a400-56847afe9799"
+                    }
+                ],
+                "id": "task1.802df2ae-3ad4-11e4-a400-56847afe9799"
+            },
+            {
+                "appId": "/no-health-check-results-app",
+                "id": "task2.7c99814d-3ad4-11e4-a400-56847afe9799"
+            }
+        ],
+        "tasksRunning": 2,
+        "tasksStaged": 0,
+        "version": "2014-09-12T23:28:21.737Z"
+    }
+    }

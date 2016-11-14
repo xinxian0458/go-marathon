@@ -20,6 +20,7 @@ package marathon
 type HealthCheck struct {
 	Command                *Command `json:"command,omitempty"`
 	PortIndex              *int     `json:"portIndex,omitempty"`
+	Port                   *int     `json:"port,omitempty"`
 	Path                   *string  `json:"path,omitempty"`
 	MaxConsecutiveFailures *int     `json:"maxConsecutiveFailures,omitempty"`
 	Protocol               string   `json:"protocol,omitempty"`
@@ -37,6 +38,12 @@ func (h HealthCheck) SetCommand(c Command) HealthCheck {
 // SetPortIndex sets the given port index on the health check.
 func (h HealthCheck) SetPortIndex(i int) HealthCheck {
 	h.PortIndex = &i
+	return h
+}
+
+// SetPort sets the given port on the health check.
+func (h HealthCheck) SetPort(i int) HealthCheck {
+	h.Port = &i
 	return h
 }
 
@@ -75,6 +82,7 @@ type HealthCheckResult struct {
 	ConsecutiveFailures int    `json:"consecutiveFailures"`
 	FirstSuccess        string `json:"firstSuccess"`
 	LastFailure         string `json:"lastFailure"`
+	LastFailureCause    string `json:"lastFailureCause"`
 	LastSuccess         string `json:"lastSuccess"`
 	TaskID              string `json:"taskId"`
 }
